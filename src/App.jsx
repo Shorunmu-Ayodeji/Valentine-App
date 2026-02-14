@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import PasscodeGate from "./components/PasscodeGate";
 import StorySection from "./components/StorySection";
