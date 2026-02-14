@@ -6,6 +6,7 @@ import SongSection from "./components/SongSection";
 import JournalSection from "./components/JournalSection";
 
 const INTRO_DURATION = 3000;
+const UNLOCKED_STORAGE_KEY = "bonita-site-unlocked";
 
 function IntroScreen() {
   return (
@@ -26,7 +27,7 @@ function WelcomeOverlay({ onDone }) {
   return (
     <div className="fixed inset-0 z-40 bg-black/95 flex items-center justify-center transition-opacity duration-1000">
       <p className="text-4xl md:text-6xl text-red-500 font-bold animate-pulse drop-shadow-[0_0_24px_rgba(239,68,68,0.7)] text-center px-4">
-        Welcome, Bonita <span className="inline-block animate-pulse">❤️</span>
+        Welcome, Bonita <span className="inline-block animate-pulse">&#10084;&#65039;</span>
       </p>
     </div>
   );
@@ -60,20 +61,27 @@ function FloatingParticles() {
 }
 
 export default function App() {
-  const [stage, setStage] = useState("intro");
+  const [stage, setStage] = useState(() => {
+    const unlocked = localStorage.getItem(UNLOCKED_STORAGE_KEY) === "true";
+    return unlocked ? "main" : "intro";
+  });
+  const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem(UNLOCKED_STORAGE_KEY) === "true");
 
   useEffect(() => {
-    const timer = setTimeout(() => setStage("gate"), INTRO_DURATION);
+    if (stage !== "intro") return undefined;
+    const timer = setTimeout(() => setStage(isUnlocked ? "main" : "gate"), INTRO_DURATION);
     return () => clearTimeout(timer);
-  }, []);
+  }, [stage, isUnlocked]);
 
   return (
     <main className="relative min-h-screen bg-black text-red-100 font-sans">
       {stage === "intro" && <IntroScreen />}
 
-      {stage === "gate" && (
+      {stage === "gate" && !isUnlocked && (
         <PasscodeGate
           onSuccess={() => {
+            localStorage.setItem(UNLOCKED_STORAGE_KEY, "true");
+            setIsUnlocked(true);
             setStage("welcome");
           }}
         />
@@ -92,6 +100,13 @@ export default function App() {
                 I Don&apos;t Like You
               </h1>
               <p className="text-red-200/80 font-sans">A private reel for Bonita.</p>
+              <button
+                type="button"
+                onClick={() => setStage("intro")}
+                className="inline-flex px-3 py-1.5 rounded-md border border-red-800/70 bg-red-950/30 text-red-200 text-sm hover:bg-red-900/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              >
+                Replay intro
+              </button>
             </header>
 
             <StorySection />

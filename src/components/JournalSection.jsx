@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "bonita-journal-entries";
+const MIN_ENTRY_LENGTH = 3;
+const MAX_ENTRY_LENGTH = 400;
 
 function formatDate(ts) {
   return new Date(ts).toLocaleString();
@@ -9,6 +11,7 @@ function formatDate(ts) {
 export default function JournalSection() {
   const [text, setText] = useState("");
   const [entries, setEntries] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -30,8 +33,24 @@ export default function JournalSection() {
 
   const canSave = useMemo(() => text.trim().length > 0, [text]);
 
+  function validateEntry(value) {
+    const trimmed = value.trim();
+    if (trimmed.length < MIN_ENTRY_LENGTH) {
+      return `Please write at least ${MIN_ENTRY_LENGTH} characters.`;
+    }
+    if (trimmed.length > MAX_ENTRY_LENGTH) {
+      return `Please keep entries under ${MAX_ENTRY_LENGTH} characters.`;
+    }
+    return "";
+  }
+
   function saveEntry() {
     if (!canSave) return;
+    const nextError = validateEntry(text);
+    if (nextError) {
+      setError(nextError);
+      return;
+    }
     setEntries((prev) => [
       {
         id: crypto.randomUUID(),
@@ -41,6 +60,7 @@ export default function JournalSection() {
       ...prev
     ]);
     setText("");
+    setError("");
   }
 
   function deleteEntry(id) {
@@ -51,22 +71,37 @@ export default function JournalSection() {
     <section className="glass-card rounded-2xl p-6 md:p-8 space-y-5 border border-red-900/40">
       <h3 className="font-serif text-2xl md:text-3xl text-red-400">Write to me when I&apos;m not there.</h3>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Leave a note..."
-        rows={4}
-        className="w-full rounded-lg bg-black/60 border border-red-900/60 p-3 text-red-100 placeholder-red-200/45 focus:outline-none focus:ring-2 focus:ring-red-500/60"
-      />
-
-      <button
-        type="button"
-        disabled={!canSave}
-        onClick={saveEntry}
-        className="px-5 py-2.5 rounded-lg bg-red-600 text-white font-medium disabled:opacity-45 disabled:cursor-not-allowed hover:bg-red-500 transition-colors"
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          saveEntry();
+        }}
+        className="space-y-3"
       >
-        Save
-      </button>
+        <textarea
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (error) setError("");
+          }}
+          placeholder="Leave a note..."
+          rows={4}
+          maxLength={MAX_ENTRY_LENGTH}
+          aria-label="Write a note"
+          className="w-full rounded-lg bg-black/60 border border-red-900/60 p-3 text-red-100 placeholder-red-200/45 focus:outline-none focus:ring-2 focus:ring-red-500/60"
+        />
+        <div className="flex items-center justify-between text-xs text-red-300/75">
+          <span aria-live="polite">{error || `Max ${MAX_ENTRY_LENGTH} characters.`}</span>
+          <span>{text.trim().length}/{MAX_ENTRY_LENGTH}</span>
+        </div>
+        <button
+          type="submit"
+          disabled={!canSave}
+          className="px-5 py-2.5 rounded-lg bg-red-600 text-white font-medium disabled:opacity-45 disabled:cursor-not-allowed hover:bg-red-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+        >
+          Save
+        </button>
+      </form>
 
       <div className="space-y-3">
         {entries.length === 0 && <p className="text-red-200/70 text-sm">No notes yet.</p>}
@@ -79,7 +114,8 @@ export default function JournalSection() {
               <button
                 type="button"
                 onClick={() => deleteEntry(entry.id)}
-                className="text-red-300 hover:text-red-100 transition-colors"
+                aria-label={`Delete note from ${formatDate(entry.createdAt)}`}
+                className="text-red-300 hover:text-red-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
               >
                 Delete
               </button>

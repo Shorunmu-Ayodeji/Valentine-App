@@ -95,7 +95,7 @@ export default function DecisionSection() {
   }
 
   function chooseValentineNo() {
-    setValentineAnswer("yes");
+    setValentineAnswer("no");
     setNoCount((count) => Math.min(count + 1, 3));
     setHeartBurst(true);
     setTimeout(() => {
